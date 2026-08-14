@@ -1,0 +1,16 @@
+# ランタイム生成物（各自のローカルに閉じる。コミットしない）
+/data/*.sqlite
+/data/*.sqlite-*
+/data/uploads/*
+!/data/uploads/.gitkeep
+
+# APIキー等の秘密（もし config を置く場合）
+/config.local.php
+.env
+
+# OS / エディタ
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
