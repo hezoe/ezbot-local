@@ -1,0 +1,16 @@
+# 使い方:
+#   docker compose up --build      # 起動（初回はビルド）
+#   → http://127.0.0.1:8000/       チャット画面
+#   → http://127.0.0.1:8000/admin  管理画面
+#
+# API キー・知識・SQLite は ./data に永続化される（コンテナを消しても残る）。
+services:
+  ezbot:
+    build: .
+    # ホスト側は 127.0.0.1 のみに公開（そのまま外部公開しない）。
+    ports:
+      - "127.0.0.1:8000:8000"
+    # SQLite とアップロードをホストの ./data に保存（学習データが消えない）。
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

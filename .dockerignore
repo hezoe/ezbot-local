@@ -1,0 +1,8 @@
+.git
+data/*.sqlite
+data/*.sqlite-*
+data/uploads/*
+*.log
+.vscode
+.idea
+.DS_Store

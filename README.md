@@ -63,6 +63,22 @@ php -S 127.0.0.1:8000 public/index.php
 
 （`data/ezbot.sqlite` は初回アクセス時に自動生成されます）
 
+#### Docker で動かす場合（PHP を入れたくない人向け）
+
+PHP を各自の PC に入れず、**コンテナだけで**動かせます（必要なのは Docker のみ）。
+
+```bash
+git clone https://github.com/hezoe/ezbot-local.git
+cd ezbot-local
+docker compose up --build
+```
+
+- チャット画面： http://127.0.0.1:8000/ ／ 管理画面： http://127.0.0.1:8000/admin
+- API キー・知識・SQLite は **ホストの `./data` に永続化**（コンテナを消しても残る）
+- ホスト側は `127.0.0.1` のみに公開（そのまま外部公開しない設定）
+
+> 必要な PHP 拡張（pdo_sqlite / zip / mbstring / curl / dom）は `Dockerfile` 側で導入済みです。
+
 ### 3. API キーを入れて知識を追加
 
 1. `/admin` →「⚙ 設定」で **Anthropic** と **Voyage** の API キーを入力して保存
