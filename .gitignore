@@ -8,6 +8,9 @@
 # APIキー等の秘密（もし config を置く場合）
 /config.local.php
 .env
+API-KEY.txt
+api-key.txt
+*.key
 
 # OS / エディタ
 .DS_Store
