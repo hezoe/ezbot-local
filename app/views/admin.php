@@ -128,7 +128,7 @@ $has_keys = Settings::anthropic_key() !== '' && Settings::voyage_key() !== '';
 				</div>
 
 				<label>ラベル（任意・出典表示に使用）</label>
-				<input type="text" name="label" placeholder="例：NoviSign 料金表">
+				<input type="text" name="label" placeholder="例：製品マニュアル / 社内規程 / 料金表">
 				<p style="margin-top:14px"><button type="submit">取り込む</button></p>
 			</form>
 		</div>

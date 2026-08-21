@@ -56,8 +56,8 @@ final class Settings
 			'email_thanks'    => 'ありがとうございます。担当者より追ってご連絡いたします。',
 			// Teams で担当者が回答したときに提示する「お客様へのメール返信例」。
 			// 差し込み記号：{question}（お客様の質問）/ {answer}（担当者の回答）/ {email}（返信先）。
-			'mail_subject'    => 'お問い合わせいただいた件について（NoviSign）',
-			'mail_template'   => "お世話になっております。NoviSign サポートでございます。\nこのたびはお問い合わせいただき、誠にありがとうございます。\n頂きましたご質問につきまして、下記のとおり回答いたします。\n\n【ご質問】\n{question}\n\n【回答】\n{answer}\n\nご不明な点がございましたら、お気軽にご返信ください。\n今後ともよろしくお願いいたします。",
+			'mail_subject'    => 'お問い合わせいただいた件について',
+			'mail_template'   => "お世話になっております。\nこのたびはお問い合わせいただき、誠にありがとうございます。\n頂きましたご質問につきまして、下記のとおり回答いたします。\n\n【ご質問】\n{question}\n\n【回答】\n{answer}\n\nご不明な点がございましたら、お気軽にご返信ください。\n今後ともよろしくお願いいたします。",
 			// 感情（ヒート）検知。LLMが各応答に <<HEAT:NN>> を付与→抽出。
 			'heat_threshold'  => 70,   // これ以上で「高ヒート」＝確認質問を飛ばして即人へ＋共感＋カード強調
 			'empathy_note'    => 'お困りのところ恐れ入ります。',  // 高ヒート時の引き継ぎ文の冒頭に添える一言
@@ -70,8 +70,8 @@ final class Settings
 			'reminders_enabled'      => 1,
 			'reminder_business_days' => 1,
 			'widget_enabled'  => 1,
-			'widget_title'    => 'NoviSign サポート',
-			'widget_greeting' => 'こんにちは🐱 NoviSign のことなら何でも聞いてください。ノビにゃんがお答えします。',
+			'widget_title'    => '自分ボット',
+			'widget_greeting' => 'こんにちは🐱 取り込んだ知識のことなら何でも聞いてください。',
 			// ランチャー横に時々表示する誘導吹き出し（Botだと気づいてもらうため）。
 			'bubble_enabled'  => 1,
 			'bubble_text'     => 'なんでも聞いてにゃん🐱',

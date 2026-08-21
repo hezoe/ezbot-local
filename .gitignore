@@ -1,6 +1,7 @@
 # ランタイム生成物（各自のローカルに閉じる。コミットしない）
-/data/*.sqlite
-/data/*.sqlite-*
+# SQLite には API キーが保存されるため、バックアップやジャーナルも含めて確実に除外する
+# （`*.sqlite` だけだと ezbot.sqlite.bak-xxxx のような複製が漏れる）
+/data/*.sqlite*
 /data/uploads/*
 !/data/uploads/.gitkeep
 

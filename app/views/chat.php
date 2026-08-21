@@ -52,6 +52,7 @@
 
 <script>
 const GREETING = <?= json_encode($cfg['widget_greeting'], JSON_UNESCAPED_UNICODE) ?>;
+const BOT_NAME = <?= json_encode($cfg['widget_title'], JSON_UNESCAPED_UNICODE) ?>;
 const logEl = document.getElementById('log');
 const form  = document.getElementById('bar');
 const input = document.getElementById('text');
@@ -82,7 +83,7 @@ function typing(on){
 	let t = document.getElementById('typing');
 	if (on){
 		if (!t){ t = document.createElement('div'); t.id='typing'; t.className='typing';
-			t.innerHTML = 'ノビにゃんが考え中 <span class="dot">●</span><span class="dot">●</span><span class="dot">●</span>';
+			t.innerHTML = escapeHtml(BOT_NAME) + 'が考え中 <span class="dot">●</span><span class="dot">●</span><span class="dot">●</span>';
 			logEl.appendChild(t); logEl.scrollTop = logEl.scrollHeight; }
 	} else if (t){ t.remove(); }
 }

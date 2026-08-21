@@ -10,9 +10,11 @@
 > 🔰 **はじめての人・コマンドが苦手な人へ** → まず **[最初の一歩.md](最初の一歩.md)** を上から順に。
 > Claude Code にお願いしながら、Windows 11 で動かすところまで手取り足取り案内します。
 
-> このリポジトリのコア(`engine/`)は、本番の WordPress プラグイン **novisign-chatbot** と **同一のロジック**です。
-> ここで学んだ `ChatEngine` / `Knowledge` / `LLM` / `Embeddings` は、そのまま本番プラグインへ移せます。
-> 違いは「WordPress の代わりに薄い互換シム＋SQLite で動かしている」点だけ（→ `compat/wp-shim.php`）。
+> このリポジトリのコア(`engine/`)は、本番の WordPress プラグイン **novisign-chatbot** と **同じ構造**です。
+> ここで学んだ `ChatEngine` / `Knowledge` / `LLM` / `Embeddings` の考え方は、そのまま本番プラグインへ移せます。
+> 違いは「WordPress の代わりに薄い互換シム＋SQLite で動かしている」点（→ `compat/wp-shim.php`）と、
+> **ボットの人格・守備範囲を特定の製品に固定せず、管理画面の設定と知識ベースで決まるようにしている**点です
+> （本番プラグインは NoviSign 専用の文言がプロンプトに直書きされています → `engine/class-chat-engine.php`）。
 
 ---
 
@@ -106,7 +108,7 @@ ezbot-local/
 │     └─ admin.php      ← 管理GUI（設定/知識/問い合わせ/ログ/ツール）
 ├─ compat/
 │  └─ wp-shim.php       ← ★WordPress互換シム。WP関数の代替＋SQLite版 $wpdb
-├─ engine/              ← ★本番プラグインと同一のコアロジック（無改変）
+├─ engine/              ← ★本番プラグインと同構造のコアロジック（プロンプトのみ汎用化）
 │  ├─ class-chat-engine.php  回答の司令塔（RAG＋マルチターン＋引き継ぎ判定）
 │  ├─ class-knowledge.php    取り込み・チャンク・検索・ファイル抽出
 │  ├─ class-embeddings.php   Voyage 埋め込みクライアント

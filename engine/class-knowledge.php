@@ -322,7 +322,7 @@ final class Knowledge
 	public static function import_json(array $data, string $mode = 'merge')
 	{
 		if (($data['format'] ?? '') !== 'nsbot-knowledge') {
-			return new \WP_Error('nsbot_bad_format', 'NoviSign の知識エクスポート（format=nsbot-knowledge）ではありません。');
+			return new \WP_Error('nsbot_bad_format', 'このアプリの知識エクスポート（format=nsbot-knowledge）ではありません。');
 		}
 		$sources   = is_array($data['sources'] ?? null) ? $data['sources'] : [];
 		$knowledge = is_array($data['knowledge'] ?? null) ? $data['knowledge'] : [];
