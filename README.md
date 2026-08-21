@@ -45,13 +45,50 @@ sudo apt-get install -y php-cli php-sqlite3 php-zip php-mbstring php-curl php-xm
 # macOS (Homebrew)
 brew install php
 # Windows は https://windows.php.net/ の zip を展開し PATH を通す
+#   → 加えて CA 証明書の設定が必須。次の「Windows の追加設定」を参照
 ```
 
 確認：
 ```bash
 php -v
 php -m | grep -E 'pdo_sqlite|zip|mbstring|curl'
+
+# HTTPS が通るか（Anthropic / Voyage / URL取り込みの全経路で必要）
+php -r '$ch=curl_init("https://api.anthropic.com/v1/models"); curl_setopt($ch,CURLOPT_RETURNTRANSFER,true); var_dump(curl_exec($ch)!==false); echo curl_error($ch);'
+# => bool(true) なら OK
 ```
+
+#### Windows の追加設定：CA 証明書（cacert.pem）← 必須
+
+**Windows 版 PHP の zip には CA 証明書ストアが同梱されていません。**
+`php.ini` の `curl.cainfo` も既定で空のため、そのままでは証明書の検証に失敗し
+**HTTPS 通信がすべて失敗します**（本アプリは Anthropic・Voyage・URL 取り込みの
+全経路で HTTPS を使うため、事実上何も動きません）。
+
+症状は管理画面で「ページ本文を取得できませんでした」／取り込みが `error` のまま、
+CLI では `unable to get local issuer certificate (20)` です。
+
+```powershell
+# 1) php.ini が無ければ php.ini-development をコピーして作る
+php --ini   # "Loaded Configuration File" が (none) なら未作成
+
+# 2) 証明書を取得（PHP を C:\php に展開した場合の例）
+New-Item -ItemType Directory -Path 'C:\php\extras\ssl' -Force
+Invoke-WebRequest -Uri 'https://curl.se/ca/cacert.pem' -OutFile 'C:\php\extras\ssl\cacert.pem'
+```
+
+`php.ini` に以下を設定（行頭の `;` を外す）：
+
+```ini
+curl.cainfo = "C:/php/extras/ssl/cacert.pem"
+openssl.cafile="C:/php/extras/ssl/cacert.pem"
+```
+
+設定後、上の「HTTPS が通るか」で `bool(true)` になることを確認してください。
+
+> `php.ini` は起動時にしか読まれません。**内蔵サーバーは必ず再起動**すること。
+> API から `401` / `405` が返るのは正常（キー未指定・GET 不可）で、通信自体は成功しています。
+> Docker で動かす場合は公式イメージに証明書が入っているため、この設定は不要です。
 
 ### 2. 起動
 
