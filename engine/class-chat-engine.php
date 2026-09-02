@@ -54,16 +54,24 @@ final class ChatEngine
 			return $out;
 		}
 
-		// 2) 類似チャンク検索（生の最高スコアを記録用に保持し、しきい値超えだけ文脈に）
-		$k = (int) Settings::get('top_k', 5);
+		// 2) 類似チャンク検索（生の最高スコアを記録用に保持）。
+		//    しきい値超えを「確かな根拠」とし、1件も無いときだけ下限(threshold_floor)までを
+		//    「関連度の低い候補」として渡す。voyage-3.5 の日本語スコアは 0.4〜0.65 に固まるため、
+		//    単一しきい値で切ると正しい知識が僅差で落ち、文脈が空 → 常に引き継ぎ、という
+		//    硬い挙動になっていた。該当/非該当の最終判断は捨てずに Claude へ委ねる。
+		$k = (int) Settings::get('top_k', 8);
 		$threshold = (float) Settings::get('threshold', 0.45);
+		$floor = min($threshold, (float) Settings::get('threshold_floor', 0.35));
 		$searched = Knowledge::search($qvec, $k);
 		$top_score = !empty($searched) ? max(array_map(static fn($h) => (float) $h['score'], $searched)) : 0.0;
 		$hits = array_values(array_filter($searched, static fn($h) => $h['score'] >= $threshold));
+		$weak = empty($hits)
+			? array_values(array_filter($searched, static fn($h) => $h['score'] >= $floor))
+			: [];
 
-		// 3) Claude に文脈限定で応答させる（回答／確認質問／引き継ぎ）
+		// 3) Claude に応答させる（回答／確認質問／引き継ぎ）
 		$system = self::system_prompt($clarify_left > 0);
-		$messages = self::build_messages($history, $message, $hits);
+		$messages = self::build_messages($history, $message, $hits, $weak);
 
 		$reply = LLM::chat($system, $messages);
 		if (is_wp_error($reply)) {
@@ -207,10 +215,11 @@ final class ChatEngine
 	 * Claude へ渡すメッセージ列を構築。履歴 ＋ （参考情報＋今回の質問）。
 	 *
 	 * @param array<int, array{role:string, content:string}> $history
-	 * @param array<int, array{text:string, label:string, score:float}> $hits
+	 * @param array<int, array{text:string, label:string, score:float}> $hits  しきい値超え（確かな根拠）
+	 * @param array<int, array{text:string, label:string, score:float}> $weak  下限超え（関連度は低い候補）
 	 * @return array<int, array{role:string, content:string}>
 	 */
-	private static function build_messages(array $history, string $message, array $hits): array
+	private static function build_messages(array $history, string $message, array $hits, array $weak = []): array
 	{
 		$messages = [];
 		foreach ($history as $m) {
@@ -221,9 +230,15 @@ final class ChatEngine
 			}
 		}
 
-		$context = empty($hits)
-			? '（該当する参考情報は見つかりませんでした）'
-			: self::build_context($hits);
+		if (!empty($hits)) {
+			$context = self::build_context($hits);
+		} elseif (!empty($weak)) {
+			// 僅差で落ちた候補。使えるかどうかは Claude に読ませて判断させる。
+			$context = "※以下は関連度がやや低い候補です。質問に本当に答えている部分があればそれを根拠に使い、"
+				. "無関係なら無視してください。\n\n" . self::build_context($weak);
+		} else {
+			$context = '（該当する参考情報は見つかりませんでした）';
+		}
 
 		$messages[] = [
 			'role'    => 'user',
@@ -262,9 +277,16 @@ final class ChatEngine
 			'目的は、ユーザーの困りごとをできるだけ自分で解決すること。安易に人へ引き継がない。',
 			'',
 			'以下のルールを厳守してください：',
-			'- 回答は「参考情報」に書かれている内容を根拠にすること。推測で補わない。ただし、一般論で解決できる場合は回答してよい。',
-			'- 参考情報に書かれていれば、分野を問わずどんな話題でも答えてよい。'
-				. '「専門外」を理由に断らないこと（判断基準は分野ではなく、参考情報に書かれているか、または一般論で答えられるか）。',
+			'- 【回答の優先順位】この順に検討し、答えられるところまで必ず答えること。',
+			'  ① 参考情報に答えがある → それを根拠に答える。',
+			'  ② 参考情報が部分的にしか無い → 答えられる範囲は答え、足りない部分だけを一言そえる（全体を断らない）。',
+			'  ③ 参考情報に無い → 一般的な知識で妥当に答えられるなら答える'
+				. '（用語の意味・一般的な手順や考え方・雑談・あいさつなど）。断定を避け「一般的には」と前置きする。',
+			'  ※ ただし【引き継ぎの条件】に当てはまる質問は ①②③ より優先し、一般論で答えずに引き継ぐこと。',
+			'- 分野を理由に断らないこと。「専門外です」「〇〇の専門です」とは言わない。',
+			'- ただし次は創作しないこと：この製品・サービス固有の手順／画面名／設定値／数値／価格／日付／URL。'
+				. 'これらは参考情報に書かれている場合のみ書き、無ければその部分だけ「確認が必要」と述べる。',
+			'- 完璧な回答でなくてよい。要点を押さえた回答を返すほうが、人へ引き継ぐより利用者の役に立つ。',
 			'- 会話履歴の文脈を踏まえること。直前に確認した内容を繰り返し聞かない。',
 		];
 
@@ -277,16 +299,26 @@ final class ChatEngine
 		}
 
 		$lines[] = '';
-		$lines[] = '【答えられないとき／引き継ぎ — 最重要】';
-		$lines[] = '- 参考情報にも一般論にも答えが無い・確信が持てない場合、または利用者が'
-			. '「担当者につないで」「人に聞いて」等の引き継ぎを求めた場合は、' . self::SENTINEL . ' を出力する'
+		$lines[] = '【引き継ぎ（人へ）の条件 — 限定的に使うこと】';
+		$lines[] = '- ' . self::SENTINEL . ' を出すのは次の場合だけ：'
+			. '(a) 利用者が「担当者につないで」「人に聞いて」等と明示的に求めた。'
+			. '(b) 回答が利用者固有の情報に依存する'
+				. '（契約内容・プラン・アカウント状態・請求・個別の不具合調査・見積・納期・在庫など）。'
+				. 'この場合は一般論でも代用せず、必ず ' . self::SENTINEL . ' とすること。'
+				. '「一般的にはこう確認できます」と案内して済ませないこと。'
+			. '(c) 参考情報にも一般知識にも手がかりが無く、推測で答えると害がある。';
+		$lines[] = '- 「参考情報に載っていない」というだけでは ' . self::SENTINEL . ' を出さないこと。'
+			. 'まず上の優先順位②③で答えられないかを検討し、部分的にでも答えられるならそちらを優先する。';
+		$lines[] = '- ' . self::SENTINEL . ' を出すときは'
 			. '（末尾の感情評価マーカー `<<HEAT:数値>>` だけは必ず併記する。それ以外の文章は書かない）。';
 		$lines[] = '- このとき、謝罪文・「担当者に伝えます／引き継ぎます」等の予告・連絡先やメールの案内・会話の要約は'
 			. '一切書かないこと（HEATマーカーを除き ' . self::SENTINEL . ' 以外の本文を書くと、実際の引き継ぎが発動せず担当者へ通知が飛ばない）。'
 			. '引き継ぎとメールアドレスの取得はすべてシステムが行う。';
 		$lines[] = '- 利用者がメールアドレスや自虐的な表現（例：自分を「クレーマー」と呼ぶ等）を述べても、'
 			. 'それを復唱・要約・本文に書き起こさない。該当時は ' . self::SENTINEL . ' を出すだけにする。';
-		$lines[] = '- 参考情報に「連絡先」しか見当たらない場合も回答ではない → ' . self::SENTINEL . '。';
+		$lines[] = '- 回答の中に連絡先（電話番号・メールアドレス・問い合わせフォーム・窓口の案内）を書かないこと。'
+			. '参考情報にそれらが含まれていても書かない。「お問い合わせください」と促すこともしない。'
+			. '担当者への引き継ぎはシステムが行うので、必要なら ' . self::SENTINEL . ' を出すだけにする。';
 		$lines[] = '- 一般常識や雑談・あいさつ（天気・世間話など）には、'
 			. self::SENTINEL . ' を出さず、一般論の範囲で簡潔に答えること（この場合は連絡先取得・引き継ぎを行わない）。'
 			. '参考情報に該当する記述があれば、話題の分野を問わず通常どおりそれを根拠に答える。';

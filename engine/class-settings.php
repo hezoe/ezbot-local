@@ -34,11 +34,15 @@ final class Settings
 			'teams_app_password' => '',
 			'teams_tenant_id'    => '',
 			// マルチテナント Bot は 'common'、シングルテナントはテナントGUID（accessor が tenant_id を優先）。
-			'top_k'           => 5,
+			'top_k'           => 8,
 			// voyage-3.5 の日本語コサイン類似度は 0.4〜0.65 に固まりやすい。
 			// 0.55 は正しい知識まで却下する誤判定が多かったため 0.45 を既定とし、
 			// 最終的な該当/非該当判定は Claude の <<NO_ANSWER>> に委ねる設計。
 			'threshold'       => 0.45,
+			// threshold を1件も超えなかったときだけ、ここまでのスコアを
+			// 「関連度の低い候補」として Claude に見せる（0.45 との僅差で落ちた
+			// 正しい知識を拾うため）。文脈を空にすると必ず引き継ぎに倒れてしまう。
+			'threshold_floor' => 0.35,
 			// 普段は「要点を簡潔に」のプロンプト指示で短く収まる。これは長い手順を
 			// 出すときでも文の途中で切れないための保険枠（参照リンクは末尾にあるため
 			// 真っ先に巻き添えになる）。短答指示があるため毎回フルに使うわけではない。
@@ -202,8 +206,11 @@ final class Settings
 		$out['report_enabled']    = empty($input['report_enabled']) ? 0 : 1;
 		$out['reminders_enabled'] = empty($input['reminders_enabled']) ? 0 : 1;
 
-		if (isset($input['threshold'])) {
-			$out['threshold'] = min(1.0, max(0.0, (float) $input['threshold']));
+		$float_keys = ['threshold', 'threshold_floor'];
+		foreach ($float_keys as $k) {
+			if (isset($input[$k])) {
+				$out[$k] = min(1.0, max(0.0, (float) $input[$k]));
+			}
 		}
 
 		$out['widget_enabled'] = empty($input['widget_enabled']) ? 0 : 1;

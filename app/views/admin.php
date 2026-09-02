@@ -256,9 +256,11 @@ $has_keys = Settings::anthropic_key() !== '' && Settings::voyage_key() !== '';
 				<h2>RAG パラメータ</h2>
 				<div class="row">
 					<div><label>類似度しきい値 (threshold)</label><input type="text" name="threshold" value="<?= h($cfg['threshold']) ?>"></div>
+					<div><label>下限しきい値 (threshold_floor)</label><input type="text" name="threshold_floor" value="<?= h($cfg['threshold_floor']) ?>"></div>
 					<div><label>取得件数 (top_k)</label><input type="number" name="top_k" value="<?= (int) $cfg['top_k'] ?>"></div>
 					<div><label>確認質問の上限 (max_clarify)</label><input type="number" name="max_clarify" value="<?= (int) $cfg['max_clarify'] ?>"></div>
 				</div>
+				<p class="desc">しきい値を1件も超えなかったときだけ、下限しきい値までの候補を「関連度が低い候補」として AI に見せます。下げるほど回答を試みる範囲が広がり、上げるほど「担当者へ引き継ぎ」に倒れやすくなります。</p>
 				<div class="row">
 					<div><label>チャンクサイズ</label><input type="number" name="chunk_size" value="<?= (int) $cfg['chunk_size'] ?>"></div>
 					<div><label>チャンク重なり</label><input type="number" name="chunk_overlap" value="<?= (int) $cfg['chunk_overlap'] ?>"></div>
